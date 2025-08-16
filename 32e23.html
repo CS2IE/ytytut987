@@ -982,7 +982,7 @@
                         </div>
                         
                                                   <div class="gunweb-section">
-                              <h3>Empire Guns</h3>
+                              <h3>Gun Marketplace</h3>
                               <div id="gun-marketplace-list"></div>
                           </div>
                     </div>
@@ -8279,7 +8279,7 @@
                                 <div style="font-size: 0.9em; opacity: 0.7;">Type: ${gun.type || 'Unknown'}</div>
                                 <div style="font-size: 0.9em; opacity: 0.7;">Buy Price: $${(gun.buyPrice || 0).toLocaleString()}</div>
                                 <div style="color: #4ade80;">Sell Price: $${(gun.sellPrice || 0).toLocaleString()}</div>
-                                <div style="color: #fbbf24;">Total Value: $${((gun.sellPrice || 0) * (gun.quantity || 1)).toLocaleString()}</div>
+                                <div style="color: #fbbf24;">Reserved Value: $${((gun.sellPrice || 0) * (gun.reservedForEmpire || 0)).toLocaleString()}</div>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
                                 <button onclick="game.moveGunToSell('${gunName}')" class="btn-secondary" style="background: #3b82f6; color: white;">Reduce Reserved</button>
@@ -8626,7 +8626,7 @@
                 const gun = this.gameData.gunInventory[gunName];
                 if (!gun) return;
 
-                const available = (gun.quantity || 1);
+                const available = Math.max(0, (gun.quantity || 1) - (gun.reservedForEmpire || 0));
                 const modalContent = `
                     <div class="quantity-modal">
                         <h3>Take Guns to Empire</h3>
@@ -8662,7 +8662,14 @@
                 if (typeof gun.quantity === 'undefined' || gun.quantity === null) gun.quantity = 1;
                 if (typeof gun.reservedForEmpire === 'undefined' || gun.reservedForEmpire === null) gun.reservedForEmpire = 0;
 
-                const takeQty = Math.max(1, Math.min(quantity, gun.quantity));
+                const sellableLeft = Math.max(0, (gun.quantity || 1) - (gun.reservedForEmpire || 0));
+                const takeQty = Math.max(0, Math.min(quantity, sellableLeft));
+                if (takeQty <= 0) {
+                    this.showNotification(`No available ${gunName} to reserve`, 'error');
+                    this.hideModal();
+                    return;
+                }
+
                 gun.reservedForEmpire += takeQty;
                 if (gun.reservedForEmpire > gun.quantity) gun.reservedForEmpire = gun.quantity;
 
